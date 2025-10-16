@@ -1,0 +1,122 @@
+/* Job Cards */
+.jobs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.job-card {
+    background-color: var(--white);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+    border: 1px solid var(--light-gray);
+}
+
+.job-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.job-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--light-gray);
+}
+
+.job-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--dark);
+}
+
+.job-company {
+    color: var(--primary);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.job-meta {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.job-meta span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.875rem;
+    color: var(--gray);
+}
+
+.job-body {
+    padding: 1.5rem;
+}
+
+.job-description {
+    color: var(--gray);
+    margin-bottom: 1.5rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.job-footer {
+    padding: 1rem 1.5rem;
+    background-color: var(--light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.job-type {
+    padding: 0.25rem 0.75rem;
+    background-color: var(--light-gray);
+    border-radius: 50px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.apply-btn {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    text-decoration: none;
+    display: inline-block;
+}
+
+.apply-btn:hover {
+    background-color: var(--primary-dark);
+}
+
+/* Load More Button */
+.load-more {
+    display: block;
+    margin: 3rem auto 0;
+    background-color: transparent;
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    border-radius: 5px;
+    padding: 0.75rem 2rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.load-more:hover {
+    background-color: var(--primary);
+    color: white;
+}
+
+.load-more-container {
+    text-align: center;
+    margin-top: 3rem;
+}

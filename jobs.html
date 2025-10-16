@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Jobs - SwiftBliss Jobs</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/components/header.css">
+    <link rel="stylesheet" href="css/components/footer.css">
+    <link rel="stylesheet" href="css/components/jobs.css">
+    <link rel="stylesheet" href="css/pages/jobs-page.css">
+</head>
+<body>
+    <!-- Header -->
+    <div id="header"></div>
+
+    <!-- Page Header -->
+    <section class="page-header">
+        <div class="container">
+            <h1>All Job Openings</h1>
+            <p>Browse through our complete list of verified job opportunities</p>
+        </div>
+    </section>
+
+    <!-- Filters Section -->
+    <section class="filters-section">
+        <div class="container">
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="location-filter">Location</label>
+                    <select id="location-filter" class="filter-select">
+                        <option value="">All Locations</option>
+                        <option value="Abuja">Abuja</option>
+                        <option value="Lagos">Lagos</option>
+                        <option value="Remote">Remote</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="type-filter">Job Type</label>
+                    <select id="type-filter" class="filter-select">
+                        <option value="">All Types</option>
+                        <option value="Full-time">Full-time</option>
+                        <option value="Part-time">Part-time</option>
+                        <option value="Contract">Contract</option>
+                        <option value="Remote">Remote</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="company-filter">Company</label>
+                    <select id="company-filter" class="filter-select">
+                        <option value="">All Companies</option>
+                        <!-- Companies loaded dynamically -->
+                    </select>
+                </div>
+                <button class="filter-btn" id="apply-filters">Apply Filters</button>
+                <button class="filter-btn btn-outline" id="reset-filters">Reset</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Jobs Section -->
+    <section class="all-jobs">
+        <div class="container">
+            <div class="jobs-header">
+                <h2 id="jobs-count">Loading jobs...</h2>
+                <div class="search-container">
+                    <input type="text" id="jobs-search" placeholder="Search jobs...">
+                    <i class="fas fa-search"></i>
+                </div>
+            </div>
+            <div class="jobs-grid" id="all-jobs">
+                <!-- All jobs loaded dynamically -->
+            </div>
+            <div class="load-more-container">
+                <button id="load-more" class="load-more">Load More Jobs</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <div id="footer"></div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/jobs.js"></script>
+</body>
+</html>
