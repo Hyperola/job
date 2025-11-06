@@ -2,6 +2,7 @@
 class ComponentLoader {
     static async loadComponent(containerId, componentPath) {
         try {
+            console.log(`🔄 Loading ${componentPath}...`);
             const response = await fetch(componentPath);
             if (!response.ok) {
                 throw new Error(`Failed to load ${componentPath}: ${response.status}`);
@@ -14,66 +15,125 @@ class ComponentLoader {
                 container.innerHTML = html;
                 console.log(`✅ Loaded ${componentPath} into #${containerId}`);
                 
-                // Initialize component-specific scripts
                 if (containerId === 'header') {
-                    this.initHeader();
-                } else if (containerId === 'footer') {
-                    this.initFooter();
+                    // Small delay to ensure DOM is ready
+                    setTimeout(() => this.initHeader(), 100);
                 }
                 
             } else {
-                console.warn(`⚠️ Container #${containerId} not found`);
+                console.error(`❌ Container #${containerId} not found`);
             }
         } catch (error) {
             console.error(`❌ Error loading ${componentPath}:`, error);
-            // Fallback: Create basic header/footer if loading fails
             this.createFallbackComponent(containerId);
         }
     }
 
     static initHeader() {
-        // Mobile menu functionality
+        console.log('🔄 Initializing header on:', window.location.pathname);
+        
         const mobileToggle = document.getElementById('mobile-menu-toggle');
         const mobileMenu = document.getElementById('mobile-menu');
+        const mobileOverlay = document.getElementById('mobile-menu-overlay');
         
-        if (mobileToggle && mobileMenu) {
-            mobileToggle.addEventListener('click', () => {
+        console.log('Mobile elements found:', {
+            toggle: !!mobileToggle,
+            menu: !!mobileMenu,
+            overlay: !!mobileOverlay
+        });
+
+        if (mobileToggle && mobileMenu && mobileOverlay) {
+            console.log('✅ All mobile menu elements found, setting up event listeners...');
+            
+            const toggleMenu = (isOpening) => {
+                console.log('🍔 Toggling menu, opening:', isOpening);
                 mobileToggle.classList.toggle('active');
                 mobileMenu.classList.toggle('active');
+                mobileOverlay.classList.toggle('active');
+                document.body.classList.toggle('menu-open');
+                
+                if (isOpening) {
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    document.body.style.overflow = '';
+                }
+            };
+
+            // Toggle menu on button click
+            mobileToggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('📱 Mobile menu button clicked');
+                const isOpening = !mobileToggle.classList.contains('active');
+                toggleMenu(isOpening);
             });
 
-            // Close mobile menu when clicking on links
+            // Close menu on overlay click
+            mobileOverlay.addEventListener('click', () => {
+                console.log('🎯 Overlay clicked, closing menu');
+                toggleMenu(false);
+            });
+
+            // Close menu on link click
             const mobileLinks = mobileMenu.querySelectorAll('.mobile-nav-link');
             mobileLinks.forEach(link => {
-                link.addEventListener('click', () => {
-                    mobileToggle.classList.remove('active');
-                    mobileMenu.classList.remove('active');
+                link.addEventListener('click', (e) => {
+                    console.log('🔗 Mobile link clicked:', e.target.textContent);
+                    // Small delay to allow navigation
+                    setTimeout(() => toggleMenu(false), 300);
                 });
             });
 
-            // Close mobile menu when clicking outside
+            // Close menu on Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && mobileMenu.classList.contains('active')) {
+                    console.log('⎋ Escape key pressed, closing menu');
+                    toggleMenu(false);
+                }
+            });
+
+            // Close menu when clicking outside on mobile
             document.addEventListener('click', (e) => {
-                if (!mobileToggle.contains(e.target) && !mobileMenu.contains(e.target)) {
-                    mobileToggle.classList.remove('active');
-                    mobileMenu.classList.remove('active');
+                if (mobileMenu.classList.contains('active') && 
+                    !mobileToggle.contains(e.target) && 
+                    !mobileMenu.contains(e.target) &&
+                    !mobileOverlay.contains(e.target)) {
+                    console.log('👆 Click outside, closing menu');
+                    toggleMenu(false);
                 }
             });
-        }
 
-        // Header scroll effect
-        const header = document.querySelector('.main-header');
-        if (header) {
-            window.addEventListener('scroll', () => {
-                if (window.scrollY > 100) {
-                    header.classList.add('scrolled');
-                } else {
-                    header.classList.remove('scrolled');
-                }
+            console.log('✅ Mobile menu event listeners attached');
+
+        } else {
+            console.error('❌ Missing mobile menu elements:', {
+                toggle: mobileToggle,
+                menu: mobileMenu,
+                overlay: mobileOverlay
             });
+            
+            // Try fallback initialization
+            this.fallbackMobileMenu();
         }
 
-        // Set active nav link based on current page
+        // Set active nav link
         this.setActiveNavLink();
+    }
+
+    static fallbackMobileMenu() {
+        console.log('🔄 Trying fallback mobile menu initialization...');
+        const toggle = document.getElementById('mobile-menu-toggle');
+        const menu = document.getElementById('mobile-menu');
+        
+        if (toggle && menu) {
+            console.log('✅ Found elements in fallback, setting up simple toggle...');
+            toggle.addEventListener('click', function() {
+                console.log('🍔 Fallback: Hamburger clicked');
+                this.classList.toggle('active');
+                menu.classList.toggle('active');
+                document.body.classList.toggle('menu-open');
+            });
+        }
     }
 
     static setActiveNavLink() {
@@ -84,15 +144,8 @@ class ComponentLoader {
             const linkHref = link.getAttribute('href');
             if (linkHref === currentPage) {
                 link.classList.add('active');
-            } else {
-                link.classList.remove('active');
             }
         });
-    }
-
-    static initFooter() {
-        // Footer-specific initialization can go here
-        console.log('Footer initialized');
     }
 
     static createFallbackComponent(containerId) {
@@ -100,71 +153,78 @@ class ComponentLoader {
         if (!container) return;
 
         if (containerId === 'header') {
+            console.log('🔄 Creating fallback header...');
             container.innerHTML = `
                 <header class="main-header">
                     <div class="container">
-                        <div class="header-content">
-                            <div class="logo">
-                                <a href="index.html" class="logo-link">
-                                    <div class="logo-icon">
-                                        <i class="fas fa-bolt"></i>
-                                    </div>
-                                    <span class="logo-text">SwiftBliss Jobs</span>
-                                </a>
-                            </div>
-                            <nav class="main-nav">
+                        <nav class="navbar">
+                            <a href="index.html" class="logo">
+                                <div class="logo-icon">
+                                    <i class="fas fa-bolt"></i>
+                                </div>
+                                <span class="logo-text">SwiftBliss Jobs</span>
+                            </a>
+                            <div class="nav-links">
                                 <a href="index.html" class="nav-link">Home</a>
                                 <a href="jobs.html" class="nav-link">Find Jobs</a>
-                                <a href="contact.html" class="nav-link active">Contact</a>
-                            </nav>
-                        </div>
+                                <a href="about.html" class="nav-link">About</a>
+                                <a href="contact.html" class="nav-link">Contact</a>
+                            </div>
+                            <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+                                <span class="bar"></span>
+                                <span class="bar"></span>
+                                <span class="bar"></span>
+                            </button>
+                        </nav>
+                    </div>
+                    <div class="mobile-menu-overlay" id="mobile-menu-overlay"></div>
+                    <div class="mobile-menu" id="mobile-menu">
+                        <nav class="mobile-nav">
+                            <a href="index.html" class="mobile-nav-link">Home</a>
+                            <a href="jobs.html" class="mobile-nav-link">Find Jobs</a>
+                            <a href="about.html" class="mobile-nav-link">About</a>
+                            <a href="contact.html" class="mobile-nav-link">Contact</a>
+                        </nav>
                     </div>
                 </header>
             `;
-        } else if (containerId === 'footer') {
-            container.innerHTML = `
-                <footer class="main-footer">
-                    <div class="container">
-                        <div class="footer-content">
-                            <div class="footer-section">
-                                <div class="footer-logo">
-                                    <i class="fas fa-bolt"></i>
-                                    <span>SwiftBliss Jobs</span>
-                                </div>
-                                <p>Abuja's premier job portal connecting talented professionals with top employers.</p>
-                            </div>
-                            <div class="footer-section">
-                                <p>&copy; 2024 SwiftBliss Jobs. All rights reserved.</p>
-                            </div>
-                        </div>
-                    </div>
-                </footer>
-            `;
+            // Initialize the fallback header
+            setTimeout(() => {
+                this.initHeader();
+                this.fallbackMobileMenu();
+            }, 200);
         }
-        
-        console.log(`✅ Created fallback ${containerId}`);
     }
 
     static async loadAllComponents() {
-        await Promise.all([
-            this.loadComponent('header', 'components/header.html'),
-            this.loadComponent('footer', 'components/footer.html')
-        ]);
-        
-        // Update body padding for fixed header
-        this.updateBodyPadding();
-    }
-
-    static updateBodyPadding() {
-        const header = document.querySelector('.main-header');
-        if (header) {
-            const headerHeight = header.offsetHeight;
-            document.body.style.paddingTop = headerHeight + 'px';
+        console.log('🚀 Starting to load all components...');
+        try {
+            await Promise.all([
+                this.loadComponent('header', 'components/header.html'),
+                this.loadComponent('footer', 'components/footer.html')
+            ]);
+            console.log('✅ All components loaded successfully');
+        } catch (error) {
+            console.error('❌ Failed to load components:', error);
         }
     }
 }
 
 // Load components when DOM is ready
-document.addEventListener('DOMContentLoaded', async () => {
-    await ComponentLoader.loadAllComponents();
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 DOM Content Loaded - Initializing components...');
+    ComponentLoader.loadAllComponents().catch(error => {
+        console.error('❌ Component loading failed:', error);
+    });
+});
+
+// Additional safety net
+window.addEventListener('load', function() {
+    console.log('🖼️ Window loaded - checking component status...');
+    // Check if header was loaded properly
+    const header = document.querySelector('.main-header');
+    if (!header || header.innerHTML.includes('Loading')) {
+        console.log('⚠️ Header not loaded properly, triggering fallback...');
+        ComponentLoader.createFallbackComponent('header');
+    }
 });

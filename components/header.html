@@ -1,6 +1,7 @@
 <header class="main-header">
     <div class="container">
         <nav class="navbar">
+            <!-- Logo -->
             <a href="index.html" class="logo">
                 <div class="logo-icon">
                     <i class="fas fa-bolt"></i>
@@ -8,6 +9,7 @@
                 <span class="logo-text">SwiftBliss Jobs</span>
             </a>
             
+            <!-- Desktop Navigation -->
             <div class="nav-links">
                 <a href="index.html" class="nav-link">Home</a>
                 <a href="jobs.html" class="nav-link">Find Jobs</a>
@@ -15,13 +17,17 @@
                 <a href="contact.html" class="nav-link">Contact</a>
             </div>
 
-            <button class="mobile-menu-toggle" id="mobile-menu-toggle">
-                <span></span>
-                <span></span>
-                <span></span>
+            <!-- Mobile Menu Toggle -->
+            <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle mobile menu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
             </button>
         </nav>
     </div>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobile-menu-overlay"></div>
 
     <!-- Mobile Menu -->
     <div class="mobile-menu" id="mobile-menu">
