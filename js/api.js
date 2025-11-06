@@ -1,144 +1,229 @@
-// API functions for Google Sheets integration
+// Advanced API functions for Sheety integration
 const API = {
-    // Google Sheets API configuration
-    sheetId: 'YOUR_GOOGLE_SHEET_ID', // Replace with your Google Sheet ID
-    apiKey: 'YOUR_API_KEY', // Replace with your API key
-    sheetName: 'jobs', // Name of the sheet tab
+    // Sheety API configuration
+    sheetyApiId: '053ab15a0e0f433f990a359d43997fdf',
+    sheetyProject: 'swiftBliss',
+    sheetySheet: 'sheet1',
 
-    // Get all jobs from Google Sheets
-    getJobs: async function() {
+    // Cache configuration
+    cache: {
+        jobs: null,
+        lastFetch: null,
+        cacheDuration: 5 * 60 * 1000 // 5 minutes
+    },
+
+    getSheetyUrl: function() {
+        return `https://api.sheety.co/${this.sheetyApiId}/${this.sheetyProject}/${this.sheetySheet}`;
+    },
+
+    // Get all jobs from Sheety with caching
+    getJobs: async function(forceRefresh = false) {
+        // Return cached data if still valid
+        if (!forceRefresh && this.cache.jobs && this.cache.lastFetch && 
+            (Date.now() - this.cache.lastFetch) < this.cache.cacheDuration) {
+            console.log('📦 Returning cached jobs');
+            return this.cache.jobs;
+        }
+
         try {
-            // For demo purposes, using sample data
-            // In production, replace with actual Google Sheets API call
-            return this.getSampleJobs();
+            console.log('🔄 Fetching jobs from Sheety...');
             
-            // Example of actual API call (uncomment when ready):
-            /*
-            const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${this.sheetId}/values/${this.sheetName}?key=${this.apiKey}`);
-            const data = await response.json();
-            return this.formatJobsData(data.values);
-            */
-        } catch (error) {
-            console.error('Error fetching jobs:', error);
-            return this.getSampleJobs(); // Fallback to sample data
-        }
-    },
-
-    // Format jobs data from Google Sheets
-    formatJobsData: function(sheetData) {
-        if (!sheetData || sheetData.length < 2) return [];
-        
-        const headers = sheetData[0];
-        const jobs = [];
-        
-        for (let i = 1; i < sheetData.length; i++) {
-            const job = {};
-            for (let j = 0; j < headers.length; j++) {
-                job[headers[j].toLowerCase().replace(/\s+/g, '_')] = sheetData[i][j];
+            const response = await fetch(`${this.getSheetyUrl()}?t=${Date.now()}`);
+            
+            if (!response.ok) {
+                throw new Error(`Sheety API error: ${response.status}`);
             }
-            jobs.push(job);
+            
+            const data = await response.json();
+            const jobs = this.formatJobsData(data.sheet1 || []);
+            
+            // Update cache
+            this.cache.jobs = jobs;
+            this.cache.lastFetch = Date.now();
+            
+            console.log(`✅ Successfully loaded ${jobs.length} jobs from Sheety`);
+            return jobs;
+            
+        } catch (error) {
+            console.error('❌ Error fetching jobs from Sheety:', error);
+            
+            // Return cached data as fallback if available
+            if (this.cache.jobs) {
+                console.log('🔄 Using cached data as fallback');
+                return this.cache.jobs;
+            }
+            
+            // Final fallback to sample data
+            return this.getSampleJobs();
         }
-        
-        return jobs;
     },
 
-    // Sample jobs data (replace with actual API call)
+    // Format jobs data from Sheety
+    formatJobsData: function(jobs) {
+        if (!jobs || jobs.length === 0) return [];
+        
+        return jobs.map(job => ({
+            id: job.id || Math.random().toString(36).substr(2, 9),
+            title: job.jobTitle || 'No Title',
+            company: job.company || 'No Company',
+            location: job.location || 'Not Specified',
+            type: job.jobType || 'Full-time',
+            category: job.category || 'General',
+            description: job.description || 'No description available',
+            requirements: job.requirements || 'No requirements specified',
+            salary: job.salary || 'Salary not specified',
+            apply_link: job.applyLink || '#',
+            date_posted: job.datePosted || new Date().toISOString().split('T')[0],
+            status: job.status || 'Active',
+            featured: job.featured === 'true' || Math.random() > 0.7, // Random featured for demo
+            urgent: job.urgent === 'true' || Math.random() > 0.8 // Random urgent for demo
+        }));
+    },
+
+    // Get jobs with advanced filtering
+    getFilteredJobs: async function(filters = {}) {
+        const allJobs = await this.getJobs();
+        
+        return allJobs.filter(job => {
+            // Search filter
+            if (filters.search) {
+                const searchTerm = filters.search.toLowerCase();
+                const searchableText = `
+                    ${job.title} ${job.company} ${job.location} 
+                    ${job.description} ${job.requirements} ${job.category}
+                `.toLowerCase();
+                
+                if (!searchableText.includes(searchTerm)) {
+                    return false;
+                }
+            }
+            
+            // Location filter
+            if (filters.location && job.location !== filters.location) {
+                return false;
+            }
+            
+            // Job type filter
+            if (filters.jobType && job.type !== filters.jobType) {
+                return false;
+            }
+            
+            // Company filter
+            if (filters.company && job.company !== filters.company) {
+                return false;
+            }
+            
+            // Category filter
+            if (filters.category && job.category !== filters.category) {
+                return false;
+            }
+            
+            // Featured filter
+            if (filters.featured && !job.featured) {
+                return false;
+            }
+            
+            // Urgent filter
+            if (filters.urgent && !job.urgent) {
+                return false;
+            }
+            
+            // Salary range filter (basic implementation)
+            if (filters.minSalary) {
+                const salaryMatch = job.salary.match(/\d+/g);
+                if (salaryMatch) {
+                    const minSalary = Math.min(...salaryMatch.map(Number));
+                    if (minSalary < parseInt(filters.minSalary)) {
+                        return false;
+                    }
+                }
+            }
+            
+            return true;
+        });
+    },
+
+    // Get unique values for filters
+    getUniqueValues: function(jobs, field) {
+        const values = [...new Set(jobs.map(job => job[field]).filter(Boolean))];
+        return values.sort();
+    },
+
+    // Get statistics
+    getStats: function(jobs) {
+        return {
+            total: jobs.length,
+            featured: jobs.filter(job => job.featured).length,
+            urgent: jobs.filter(job => job.urgent).length,
+            locations: this.getUniqueValues(jobs, 'location').length,
+            companies: this.getUniqueValues(jobs, 'company').length,
+            categories: this.getUniqueValues(jobs, 'category').length
+        };
+    },
+
+    // Clear cache
+    clearCache: function() {
+        this.cache.jobs = null;
+        this.cache.lastFetch = null;
+        console.log('🗑️ API cache cleared');
+    },
+
+    // Sample jobs data (enhanced fallback)
     getSampleJobs: function() {
         return [
             {
-                id: 1,
-                title: "Frontend Developer",
+                id: 'sample_1',
+                title: "Senior Frontend Developer",
                 company: "Tech Solutions Ltd",
                 location: "Abuja",
                 type: "Full-time",
-                description: "We are looking for a skilled Frontend Developer with experience in React and modern JavaScript frameworks to join our growing team.",
+                category: "Technology",
+                description: "We are looking for a skilled Senior Frontend Developer with extensive experience in React, Vue.js, and modern JavaScript frameworks to lead our frontend development team.",
+                requirements: "5+ years of frontend development experience, Expertise in React.js and TypeScript, Experience with state management (Redux, Zustand), Strong understanding of responsive design",
+                salary: "₦450,000 - ₦700,000",
                 apply_link: "#",
-                date_posted: "2023-11-15",
-                salary: "₦250,000 - ₦400,000"
+                date_posted: "2024-01-15",
+                status: "Active",
+                featured: true,
+                urgent: false
             },
             {
-                id: 2,
-                title: "Marketing Manager",
+                id: 'sample_2',
+                title: "Product Marketing Manager",
                 company: "Growth Marketing Agency",
                 location: "Lagos",
                 type: "Full-time",
-                description: "Seeking an experienced Marketing Manager to develop and implement marketing strategies for our diverse client portfolio.",
+                category: "Marketing",
+                description: "Seeking an experienced Product Marketing Manager to develop and implement comprehensive marketing strategies for our diverse portfolio of digital products and services.",
+                requirements: "3+ years in product marketing, Strong analytical skills, Experience with marketing automation tools, Excellent communication skills",
+                salary: "₦350,000 - ₦550,000",
                 apply_link: "#",
-                date_posted: "2023-11-14",
-                salary: "₦300,000 - ₦500,000"
+                date_posted: "2024-01-14",
+                status: "Active",
+                featured: false,
+                urgent: true
             },
             {
-                id: 3,
-                title: "Data Analyst",
+                id: 'sample_3',
+                title: "Data Scientist",
                 company: "Data Insights Inc",
                 location: "Remote",
                 type: "Remote",
-                description: "Join our data team to analyze complex datasets and provide actionable insights to drive business decisions.",
+                category: "Technology",
+                description: "Join our data science team to analyze complex datasets, build predictive models, and provide actionable insights that drive business decisions across multiple departments.",
+                requirements: "Master's in Data Science or related field, Proficiency in Python and R, Experience with machine learning frameworks, Strong statistical analysis skills",
+                salary: "₦400,000 - ₦600,000",
                 apply_link: "#",
-                date_posted: "2023-11-13",
-                salary: "₦200,000 - ₦350,000"
-            },
-            {
-                id: 4,
-                title: "Customer Support Specialist",
-                company: "Service First Ltd",
-                location: "Abuja",
-                type: "Part-time",
-                description: "Provide exceptional customer service and support to our clients through various communication channels.",
-                apply_link: "#",
-                date_posted: "2023-11-12",
-                salary: "₦120,000 - ₦180,000"
-            },
-            {
-                id: 5,
-                title: "Product Designer",
-                company: "Creative Designs Co",
-                location: "Lagos",
-                type: "Full-time",
-                description: "Create intuitive and beautiful user experiences for our digital products across multiple platforms.",
-                apply_link: "#",
-                date_posted: "2023-11-11",
-                salary: "₦280,000 - ₦450,000"
-            },
-            {
-                id: 6,
-                title: "Sales Executive",
-                company: "Sales Pro Ltd",
-                location: "Abuja",
-                type: "Contract",
-                description: "Drive sales growth by identifying new business opportunities and building strong client relationships.",
-                apply_link: "#",
-                date_posted: "2023-11-10",
-                salary: "₦180,000 + Commission"
-            },
-            {
-                id: 7,
-                title: "Backend Developer",
-                company: "Tech Innovations",
-                location: "Abuja",
-                type: "Full-time",
-                description: "Develop robust backend systems and APIs using Node.js and Python for our enterprise applications.",
-                apply_link: "#",
-                date_posted: "2023-11-09",
-                salary: "₦300,000 - ₦500,000"
-            },
-            {
-                id: 8,
-                title: "HR Manager",
-                company: "People First Inc",
-                location: "Lagos",
-                type: "Full-time",
-                description: "Oversee all human resources functions including recruitment, training, and employee relations.",
-                apply_link: "#",
-                date_posted: "2023-11-08",
-                salary: "₦350,000 - ₦550,000"
+                date_posted: "2024-01-13",
+                status: "Active",
+                featured: true,
+                urgent: false
             }
         ];
-    },
-
-    // Get unique companies for filter
-    getUniqueCompanies: function(jobs) {
-        const companies = [...new Set(jobs.map(job => job.company))];
-        return companies.sort();
     }
 };
+
+// Initialize API when module loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 SwiftBliss Jobs API initialized');
+});

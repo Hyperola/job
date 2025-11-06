@@ -11,7 +11,7 @@
     font-size: 3.5rem;
     font-weight: 700;
     margin-bottom: 1rem;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.3);
 }
 
 .about-hero p {
@@ -20,7 +20,6 @@
     margin: 0 auto;
     opacity: 0.9;
 }
-
 /* About Content */
 .about-content {
     padding: 6rem 0;

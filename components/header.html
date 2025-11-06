@@ -1,19 +1,35 @@
-<header>
+<header class="main-header">
     <div class="container">
         <nav class="navbar">
             <a href="index.html" class="logo">
-                <i class="fas fa-briefcase"></i>
-                SwiftBliss Jobs
+                <div class="logo-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <span class="logo-text">SwiftBliss Jobs</span>
             </a>
+            
             <div class="nav-links">
-                <a href="index.html">Home</a>
-                <a href="jobs.html">Jobs</a>
-                <a href="about.html">About</a>
-                <a href="contact.html">Contact</a>
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="jobs.html" class="nav-link">Find Jobs</a>
+                <a href="about.html" class="nav-link">About</a>
+                <a href="contact.html" class="nav-link">Contact</a>
             </div>
-            <button class="mobile-menu-btn">
-                <i class="fas fa-bars"></i>
+
+            <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+                <span></span>
+                <span></span>
+                <span></span>
             </button>
+        </nav>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobile-menu">
+        <nav class="mobile-nav">
+            <a href="index.html" class="mobile-nav-link">Home</a>
+            <a href="jobs.html" class="mobile-nav-link">Find Jobs</a>
+            <a href="about.html" class="mobile-nav-link">About</a>
+            <a href="contact.html" class="mobile-nav-link">Contact</a>
         </nav>
     </div>
 </header>
