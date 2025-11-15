@@ -1,0 +1,54 @@
+{
+  "jobs": [
+    {
+      "id": "static_1",
+      "title": "Frontend Developer",
+      "company": "Tech Innovations Ltd",
+      "location": "Abuja",
+      "type": "Full-time",
+      "category": "Technology",
+      "description": "Join our dynamic team as a Frontend Developer working with modern JavaScript frameworks to build amazing user experiences.",
+      "requirements": "3+ years React experience, JavaScript, HTML5, CSS3, Responsive design",
+      "salary": "₦300,000 - ₦500,000",
+      "apply_link": "#",
+      "date_posted": "2024-01-15",
+      "featured": true,
+      "urgent": false,
+      "status": "Active"
+    },
+    {
+      "id": "static_2",
+      "title": "Marketing Coordinator",
+      "company": "Digital Growth Agency",
+      "location": "Lagos",
+      "type": "Full-time",
+      "category": "Marketing",
+      "description": "Coordinate marketing campaigns and help grow our digital presence across multiple channels.",
+      "requirements": "2+ years marketing experience, Social media management, Content creation",
+      "salary": "₦200,000 - ₦350,000",
+      "apply_link": "#",
+      "date_posted": "2024-01-14",
+      "featured": false,
+      "urgent": true,
+      "status": "Active"
+    },
+    {
+      "id": "static_3",
+      "title": "DevOps Engineer",
+      "company": "Cloud Systems NG",
+      "location": "Remote",
+      "type": "Remote",
+      "category": "Technology",
+      "description": "Implement and maintain our cloud infrastructure and CI/CD pipelines.",
+      "requirements": "AWS/Azure, Docker, Kubernetes, CI/CD, Linux administration",
+      "salary": "₦500,000 - ₦800,000",
+      "apply_link": "#",
+      "date_posted": "2024-01-13",
+      "featured": true,
+      "urgent": false,
+      "status": "Active"
+    }
+  ],
+  "lastUpdated": "2024-01-15T10:00:00Z",
+  "totalJobs": 3
+}

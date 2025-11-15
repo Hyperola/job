@@ -1,137 +1,155 @@
-// Component Loader for Header and Footer
+// Component Loader for Header and Footer with Performance Optimizations
 class ComponentLoader {
+    static cache = new Map();
+    static isInitialized = false;
+    static pendingInitializations = new Set();
+
     static async loadComponent(containerId, componentPath) {
+        // Return cached component if available
+        if (this.cache.has(componentPath)) {
+            console.log(`⚡ Using cached ${componentPath}`);
+            const html = this.cache.get(componentPath);
+            this.injectComponent(containerId, html, true);
+            return;
+        }
+
         try {
             console.log(`🔄 Loading ${componentPath}...`);
-            const response = await fetch(componentPath);
+            const response = await fetch(componentPath, {
+                cache: 'force-cache',
+                headers: {
+                    'Cache-Control': 'max-age=300'
+                }
+            });
+            
             if (!response.ok) {
                 throw new Error(`Failed to load ${componentPath}: ${response.status}`);
             }
             
             const html = await response.text();
-            const container = document.getElementById(containerId);
             
-            if (container) {
-                container.innerHTML = html;
-                console.log(`✅ Loaded ${componentPath} into #${containerId}`);
-                
-                if (containerId === 'header') {
-                    // Small delay to ensure DOM is ready
-                    setTimeout(() => this.initHeader(), 100);
-                }
-                
-            } else {
-                console.error(`❌ Container #${containerId} not found`);
-            }
+            // Cache the component
+            this.cache.set(componentPath, html);
+            
+            this.injectComponent(containerId, html, false);
+            console.log(`✅ Loaded and cached ${componentPath}`);
+            
         } catch (error) {
             console.error(`❌ Error loading ${componentPath}:`, error);
             this.createFallbackComponent(containerId);
         }
     }
 
+    static injectComponent(containerId, html, fromCache = false) {
+        const container = document.getElementById(containerId);
+        if (!container) {
+            console.error(`❌ Container #${containerId} not found`);
+            return;
+        }
+
+        container.innerHTML = html;
+        
+        if (containerId === 'header') {
+            // Initialize header immediately if from cache, otherwise use microtask
+            if (fromCache) {
+                this.initHeader();
+            } else {
+                // Use microtask for faster initialization
+                Promise.resolve().then(() => this.initHeader());
+            }
+        }
+    }
+
     static initHeader() {
-        console.log('🔄 Initializing header on:', window.location.pathname);
+        if (this.pendingInitializations.has('header')) {
+            return; // Avoid duplicate initialization
+        }
+        
+        this.pendingInitializations.add('header');
+        console.log('🔄 Initializing header...');
         
         const mobileToggle = document.getElementById('mobile-menu-toggle');
         const mobileMenu = document.getElementById('mobile-menu');
         const mobileOverlay = document.getElementById('mobile-menu-overlay');
-        
-        console.log('Mobile elements found:', {
-            toggle: !!mobileToggle,
-            menu: !!mobileMenu,
-            overlay: !!mobileOverlay
-        });
 
-        if (mobileToggle && mobileMenu && mobileOverlay) {
-            console.log('✅ All mobile menu elements found, setting up event listeners...');
-            
-            const toggleMenu = (isOpening) => {
-                console.log('🍔 Toggling menu, opening:', isOpening);
-                mobileToggle.classList.toggle('active');
-                mobileMenu.classList.toggle('active');
-                mobileOverlay.classList.toggle('active');
-                document.body.classList.toggle('menu-open');
-                
-                if (isOpening) {
-                    document.body.style.overflow = 'hidden';
-                } else {
-                    document.body.style.overflow = '';
-                }
-            };
-
-            // Toggle menu on button click
-            mobileToggle.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('📱 Mobile menu button clicked');
-                const isOpening = !mobileToggle.classList.contains('active');
-                toggleMenu(isOpening);
-            });
-
-            // Close menu on overlay click
-            mobileOverlay.addEventListener('click', () => {
-                console.log('🎯 Overlay clicked, closing menu');
-                toggleMenu(false);
-            });
-
-            // Close menu on link click
-            const mobileLinks = mobileMenu.querySelectorAll('.mobile-nav-link');
-            mobileLinks.forEach(link => {
-                link.addEventListener('click', (e) => {
-                    console.log('🔗 Mobile link clicked:', e.target.textContent);
-                    // Small delay to allow navigation
-                    setTimeout(() => toggleMenu(false), 300);
-                });
-            });
-
-            // Close menu on Escape key
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && mobileMenu.classList.contains('active')) {
-                    console.log('⎋ Escape key pressed, closing menu');
-                    toggleMenu(false);
-                }
-            });
-
-            // Close menu when clicking outside on mobile
-            document.addEventListener('click', (e) => {
-                if (mobileMenu.classList.contains('active') && 
-                    !mobileToggle.contains(e.target) && 
-                    !mobileMenu.contains(e.target) &&
-                    !mobileOverlay.contains(e.target)) {
-                    console.log('👆 Click outside, closing menu');
-                    toggleMenu(false);
-                }
-            });
-
-            console.log('✅ Mobile menu event listeners attached');
-
-        } else {
-            console.error('❌ Missing mobile menu elements:', {
-                toggle: mobileToggle,
-                menu: mobileMenu,
-                overlay: mobileOverlay
-            });
-            
-            // Try fallback initialization
+        if (!mobileToggle || !mobileMenu || !mobileOverlay) {
+            console.error('❌ Missing mobile menu elements');
+            this.pendingInitializations.delete('header');
             this.fallbackMobileMenu();
+            return;
         }
 
-        // Set active nav link
+        console.log('✅ All mobile menu elements found');
+
+        // Use event delegation for better performance
+        this.setupEventDelegation(mobileToggle, mobileMenu, mobileOverlay);
         this.setActiveNavLink();
+        
+        this.pendingInitializations.delete('header');
+        this.isInitialized = true;
+    }
+
+    static setupEventDelegation(mobileToggle, mobileMenu, mobileOverlay) {
+        let isMenuOpen = false;
+
+        const toggleMenu = (open) => {
+            isMenuOpen = open;
+            mobileToggle.classList.toggle('active', open);
+            mobileMenu.classList.toggle('active', open);
+            mobileOverlay.classList.toggle('active', open);
+            document.body.classList.toggle('menu-open', open);
+            document.body.style.overflow = open ? 'hidden' : '';
+        };
+
+        // Single event listener for all interactions
+        document.body.addEventListener('click', (e) => {
+            // Mobile menu toggle
+            if (e.target.closest('#mobile-menu-toggle')) {
+                e.preventDefault();
+                toggleMenu(!isMenuOpen);
+                return;
+            }
+            
+            // Overlay click
+            if (e.target.closest('#mobile-menu-overlay')) {
+                toggleMenu(false);
+                return;
+            }
+            
+            // Mobile nav link click
+            if (e.target.closest('.mobile-nav-link')) {
+                toggleMenu(false);
+                return;
+            }
+            
+            // Click outside to close
+            if (isMenuOpen && 
+                !e.target.closest('#mobile-menu') && 
+                !e.target.closest('#mobile-menu-toggle')) {
+                toggleMenu(false);
+            }
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && isMenuOpen) {
+                toggleMenu(false);
+            }
+        });
+
+        console.log('✅ Event delegation setup complete');
     }
 
     static fallbackMobileMenu() {
-        console.log('🔄 Trying fallback mobile menu initialization...');
+        console.log('🔄 Trying fallback mobile menu...');
         const toggle = document.getElementById('mobile-menu-toggle');
         const menu = document.getElementById('mobile-menu');
         
         if (toggle && menu) {
-            console.log('✅ Found elements in fallback, setting up simple toggle...');
             toggle.addEventListener('click', function() {
-                console.log('🍔 Fallback: Hamburger clicked');
-                this.classList.toggle('active');
-                menu.classList.toggle('active');
-                document.body.classList.toggle('menu-open');
+                const isActive = this.classList.toggle('active');
+                menu.classList.toggle('active', isActive);
+                document.body.classList.toggle('menu-open', isActive);
             });
         }
     }
@@ -144,6 +162,8 @@ class ComponentLoader {
             const linkHref = link.getAttribute('href');
             if (linkHref === currentPage) {
                 link.classList.add('active');
+            } else {
+                link.classList.remove('active');
             }
         });
     }
@@ -163,6 +183,7 @@ class ComponentLoader {
                                     <i class="fas fa-bolt"></i>
                                 </div>
                                 <span class="logo-text">SwiftBliss Jobs</span>
+                                <span class="logo-text-mobile">SwiftBliss</span>
                             </a>
                             <div class="nav-links">
                                 <a href="index.html" class="nav-link">Home</a>
@@ -188,43 +209,155 @@ class ComponentLoader {
                     </div>
                 </header>
             `;
-            // Initialize the fallback header
-            setTimeout(() => {
-                this.initHeader();
-                this.fallbackMobileMenu();
-            }, 200);
+            // Initialize immediately
+            this.initHeader();
         }
     }
 
     static async loadAllComponents() {
         console.log('🚀 Starting to load all components...');
+        
         try {
-            await Promise.all([
+            // Load components in parallel with caching
+            await Promise.allSettled([
                 this.loadComponent('header', 'components/header.html'),
                 this.loadComponent('footer', 'components/footer.html')
             ]);
-            console.log('✅ All components loaded successfully');
+            
+            console.log('✅ All components loaded');
         } catch (error) {
-            console.error('❌ Failed to load components:', error);
+            console.error('❌ Component loading failed:', error);
         }
+    }
+
+    // Preload components for faster navigation
+    static preloadComponents() {
+        const components = ['components/header.html', 'components/footer.html'];
+        
+        components.forEach(componentPath => {
+            if (!this.cache.has(componentPath)) {
+                fetch(componentPath, { cache: 'force-cache' })
+                    .then(response => response.text())
+                    .then(html => {
+                        this.cache.set(componentPath, html);
+                        console.log(`⚡ Preloaded ${componentPath}`);
+                    })
+                    .catch(error => {
+                        console.warn(`⚠️ Could not preload ${componentPath}:`, error);
+                    });
+            }
+        });
+    }
+
+    // Initialize scroll effects for modern design
+    static initScrollEffects() {
+        const header = document.querySelector('.main-header');
+        if (!header) return;
+
+        const updateHeader = () => {
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        };
+
+        // Throttled scroll handler
+        let ticking = false;
+        const throttledUpdate = () => {
+            if (!ticking) {
+                requestAnimationFrame(() => {
+                    updateHeader();
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        };
+
+        window.addEventListener('scroll', throttledUpdate, { passive: true });
+        updateHeader(); // Initial check
     }
 }
 
-// Load components when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('📄 DOM Content Loaded - Initializing components...');
-    ComponentLoader.loadAllComponents().catch(error => {
-        console.error('❌ Component loading failed:', error);
-    });
+// Enhanced initialization with multiple strategies
+class SwiftBlissApp {
+    static init() {
+        console.log('🚀 SwiftBliss App Initializing...');
+        
+        // Strategy 1: Start loading immediately if DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.startApp());
+        } else {
+            this.startApp();
+        }
+        
+        // Preload components when user interacts with navigation
+        this.setupPreloading();
+    }
+
+    static startApp() {
+        console.log('📄 DOM Ready - Starting component load...');
+        
+        // Load components with priority
+        ComponentLoader.loadAllComponents().then(() => {
+            // Initialize scroll effects after components are loaded
+            setTimeout(() => {
+                ComponentLoader.initScrollEffects();
+            }, 100);
+        }).catch(error => {
+            console.error('❌ App initialization failed:', error);
+        });
+    }
+
+    static setupPreloading() {
+        // Preload components on navigation hover
+        document.addEventListener('mouseover', (e) => {
+            const link = e.target.closest('a[href]');
+            if (link && !link.href.includes('#') && !ComponentLoader.isInitialized) {
+                ComponentLoader.preloadComponents();
+            }
+        }, { once: true, passive: true });
+
+        // Preload on touch start for mobile
+        document.addEventListener('touchstart', () => {
+            if (!ComponentLoader.isInitialized) {
+                ComponentLoader.preloadComponents();
+            }
+        }, { once: true, passive: true });
+    }
+}
+
+// Performance monitoring
+class PerformanceMonitor {
+    static startTime = performance.now();
+    
+    static logPerformance() {
+        const loadTime = performance.now() - this.startTime;
+        console.log(`⏱️  Page loaded in ${loadTime.toFixed(2)}ms`);
+        
+        // Log component cache status
+        console.log(`📦 Cache size: ${ComponentLoader.cache.size} components`);
+    }
+}
+
+// Initialize the application
+SwiftBlissApp.init();
+
+// Performance monitoring
+window.addEventListener('load', () => {
+    PerformanceMonitor.logPerformance();
+    
+    // Final safety check
+    setTimeout(() => {
+        const header = document.querySelector('.main-header');
+        if (!header || header.children.length === 0) {
+            console.log('⚠️ Header missing, creating fallback...');
+            ComponentLoader.createFallbackComponent('header');
+        }
+    }, 1000);
 });
 
-// Additional safety net
-window.addEventListener('load', function() {
-    console.log('🖼️ Window loaded - checking component status...');
-    // Check if header was loaded properly
-    const header = document.querySelector('.main-header');
-    if (!header || header.innerHTML.includes('Loading')) {
-        console.log('⚠️ Header not loaded properly, triggering fallback...');
-        ComponentLoader.createFallbackComponent('header');
-    }
-});
+// Export for potential module usage
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { ComponentLoader, SwiftBlissApp };
+}

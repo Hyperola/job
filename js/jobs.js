@@ -1,4 +1,4 @@
-// Jobs Page JavaScript with Dynamic Job Loading
+// Jobs Page JavaScript with Enhanced Sheety API Integration
 document.addEventListener('DOMContentLoaded', function() {
     // State management
     let currentJobs = [];
@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const jobsPerPage = 12;
     let isLoading = false;
     let hasMoreJobs = true;
+    let currentDataSource = 'unknown';
 
     // DOM Elements
     const jobsContainer = document.getElementById('jobs-container');
@@ -43,14 +44,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function loadJobs() {
+        if (isLoading) return;
+        
         try {
             isLoading = true;
-            console.log('🔄 Loading jobs from API...');
+            console.log('🔄 Loading jobs from Sheety API...');
             
-            // Use your actual API from api.js
             const jobs = await API.getJobs();
             
-            console.log(`✅ Loaded ${jobs.length} jobs from API`);
+            // Check data source for user feedback
+            const cacheInfo = API.getCacheInfo();
+            currentDataSource = cacheInfo.lastSource || 'unknown';
+            
+            console.log(`✅ Loaded ${jobs.length} jobs from ${currentDataSource}`);
+            
+            // Show data source status to user
+            showDataSourceStatus(currentDataSource, jobs.length);
             
             currentJobs = jobs;
             filteredJobs = [...jobs];
@@ -66,119 +75,175 @@ document.addEventListener('DOMContentLoaded', function() {
             
         } catch (error) {
             console.error('❌ Error loading jobs:', error);
-            showError('Failed to load jobs. Please try again.');
-            
-            // Use sample data as fallback
-            currentJobs = getSampleJobs();
-            filteredJobs = [...currentJobs];
-            updateStats();
-            displayJobs(getCurrentPageJobs());
-            updateLoadMoreButton();
+            handleLoadError(error);
         } finally {
             isLoading = false;
         }
     }
 
-    // Sample data fallback that matches your API structure
-    function getSampleJobs() {
-        return [
-            {
-                id: 'sample_1',
-                title: "Senior Frontend Developer",
-                company: "Tech Solutions Ltd",
-                location: "Abuja",
-                type: "Full-time",
-                category: "Technology",
-                description: "We are looking for a skilled Senior Frontend Developer with extensive experience in React, Vue.js, and modern JavaScript frameworks to lead our frontend development team.",
-                requirements: "5+ years of frontend development experience, Expertise in React.js and TypeScript, Experience with state management (Redux, Zustand), Strong understanding of responsive design",
-                salary: "₦450,000 - ₦700,000",
-                apply_link: "#",
-                date_posted: "2024-01-15",
-                status: "Active",
-                featured: true,
-                urgent: false
-            },
-            {
-                id: 'sample_2',
-                title: "Product Marketing Manager",
-                company: "Growth Marketing Agency",
-                location: "Lagos",
-                type: "Full-time",
-                category: "Marketing",
-                description: "Seeking an experienced Product Marketing Manager to develop and implement comprehensive marketing strategies for our diverse portfolio of digital products and services.",
-                requirements: "3+ years in product marketing, Strong analytical skills, Experience with marketing automation tools, Excellent communication skills",
-                salary: "₦350,000 - ₦550,000",
-                apply_link: "#",
-                date_posted: "2024-01-14",
-                status: "Active",
-                featured: false,
-                urgent: true
-            },
-            {
-                id: 'sample_3',
-                title: "Data Scientist",
-                company: "Data Insights Inc",
-                location: "Remote",
-                type: "Remote",
-                category: "Technology",
-                description: "Join our data science team to analyze complex datasets, build predictive models, and provide actionable insights that drive business decisions across multiple departments.",
-                requirements: "Master's in Data Science or related field, Proficiency in Python and R, Experience with machine learning frameworks, Strong statistical analysis skills",
-                salary: "₦400,000 - ₦600,000",
-                apply_link: "#",
-                date_posted: "2024-01-13",
-                status: "Active",
-                featured: true,
-                urgent: false
-            },
-            {
-                id: 'sample_4',
-                title: "UX/UI Designer",
-                company: "Creative Studio NG",
-                location: "Abuja",
-                type: "Full-time",
-                category: "Design",
-                description: "Create beautiful and intuitive user interfaces for web and mobile applications. Work closely with product managers and developers to deliver exceptional user experiences.",
-                requirements: "3+ years in UX/UI design, Proficiency in Figma, Adobe XD, Strong portfolio, Understanding of user-centered design principles",
-                salary: "₦300,000 - ₦500,000",
-                apply_link: "#",
-                date_posted: "2024-01-12",
-                status: "Active",
-                featured: false,
-                urgent: true
-            },
-            {
-                id: 'sample_5',
-                title: "Backend Engineer",
-                company: "Cloud Systems Ltd",
-                location: "Lagos",
-                type: "Full-time",
-                category: "Technology",
-                description: "Build scalable backend systems using Node.js, Python, and cloud technologies. Experience with microservices architecture and database design required.",
-                requirements: "4+ years backend development, Node.js/Python, Database design, API development, Cloud platforms (AWS/Azure)",
-                salary: "₦400,000 - ₦650,000",
-                apply_link: "#",
-                date_posted: "2024-01-11",
-                status: "Active",
-                featured: true,
-                urgent: false
-            },
-            {
-                id: 'sample_6',
-                title: "Digital Marketing Specialist",
-                company: "E-commerce Solutions",
-                location: "Remote",
-                type: "Remote",
-                category: "Marketing",
-                description: "Manage digital marketing campaigns across multiple channels including social media, email, and PPC. Analyze performance metrics and optimize for maximum ROI.",
-                requirements: "2+ years digital marketing, Google Analytics, Social media management, Content creation, SEO/SEM",
-                salary: "₦250,000 - ₦400,000",
-                apply_link: "#",
-                date_posted: "2024-01-10",
-                status: "Active",
-                featured: false,
-                urgent: false
+    function handleLoadError(error) {
+        // Enhanced error handling
+        let errorMessage = 'Failed to load jobs. Please try again.';
+        
+        if (error.message.includes('402') || error.message.includes('Payment Required')) {
+            errorMessage = 'API service temporarily unavailable. Using demo data.';
+        } else if (error.message.includes('Network') || error.message.includes('Failed to fetch')) {
+            errorMessage = 'Network error. Please check your connection.';
+        } else if (error.message.includes('404') || error.message.includes('Not Found')) {
+            errorMessage = 'Job database not found. Using demo data.';
+        } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+            errorMessage = 'API access issue. Using demo data.';
+        }
+        
+        showError(errorMessage);
+        
+        // Use sample data as fallback
+        currentJobs = API.getSampleJobs();
+        filteredJobs = [...currentJobs];
+        currentDataSource = 'sample';
+        
+        updateStats();
+        displayJobs(getCurrentPageJobs());
+        updateLoadMoreButton();
+        
+        // Show data source status
+        showDataSourceStatus('sample', currentJobs.length);
+    }
+
+    function showDataSourceStatus(source, jobCount) {
+        // Remove existing status message
+        const existingStatus = document.querySelector('.data-source-status');
+        if (existingStatus) {
+            existingStatus.remove();
+        }
+
+        const statusMessages = {
+            'sheety': { text: `✅ Connected to live job database (${jobCount} jobs)`, type: 'success' },
+            'static': { text: `ℹ️ Using cached job data (${jobCount} jobs)`, type: 'info' },
+            'sample': { text: `⚠️ Using demo data - Add jobs to your Google Sheet (${jobCount} sample jobs)`, type: 'warning' },
+            'unknown': { text: `ℹ️ Loaded ${jobCount} jobs`, type: 'info' }
+        };
+
+        const status = statusMessages[source] || statusMessages['unknown'];
+        
+        const statusElement = document.createElement('div');
+        statusElement.className = `data-source-status ${status.type}`;
+        statusElement.innerHTML = `
+            <div class="status-content">
+                <i class="fas fa-${getStatusIcon(status.type)}"></i>
+                <span>${status.text}</span>
+                ${source === 'sample' ? '<button class="btn-retry" id="retry-jobs-btn">Try Again</button>' : ''}
+                ${source === 'sample' ? '<button class="btn-help" id="help-jobs-btn">Setup Help</button>' : ''}
+            </div>
+        `;
+        
+        // Add styles
+        statusElement.style.cssText = `
+            background: ${getStatusColor(status.type)};
+            color: ${status.type === 'warning' ? '#000' : 'white'};
+            padding: 0.75rem 1rem;
+            border-radius: var(--border-radius);
+            margin: 1rem 0;
+            font-size: 0.9rem;
+            border-left: 4px solid ${getStatusBorderColor(status.type)};
+        `;
+
+        // Insert before jobs container
+        const jobsMain = document.querySelector('.jobs-main');
+        if (jobsMain) {
+            jobsMain.insertBefore(statusElement, jobsMain.firstChild);
+        }
+
+        // Add button listeners if needed
+        if (source === 'sample') {
+            const retryBtn = document.getElementById('retry-jobs-btn');
+            const helpBtn = document.getElementById('help-jobs-btn');
+            
+            if (retryBtn) {
+                retryBtn.addEventListener('click', refreshJobs);
+                retryBtn.style.cssText = `
+                    margin-left: 10px;
+                    padding: 4px 12px;
+                    background: rgba(255,255,255,0.2);
+                    border: 1px solid rgba(255,255,255,0.3);
+                    border-radius: 4px;
+                    color: inherit;
+                    cursor: pointer;
+                    font-size: 0.8rem;
+                `;
             }
-        ];
+            
+            if (helpBtn) {
+                helpBtn.addEventListener('click', showSetupHelp);
+                helpBtn.style.cssText = `
+                    margin-left: 5px;
+                    padding: 4px 12px;
+                    background: rgba(255,255,255,0.3);
+                    border: 1px solid rgba(255,255,255,0.4);
+                    border-radius: 4px;
+                    color: inherit;
+                    cursor: pointer;
+                    font-size: 0.8rem;
+                `;
+            }
+        }
+    }
+
+    function showSetupHelp() {
+        const helpMessage = `
+🚀 **How to Setup Your Job Database:**
+
+1. **Open your Google Sheet** that's connected to Sheety
+2. **Add job listings** with these columns:
+   - jobTitle, company, location, jobType
+   - category, description, requirements
+   - salary, applyLink, datePosted
+   - featured, urgent, status
+
+3. **Save the sheet** - changes appear automatically!
+4. **Refresh this page** to see your real jobs
+
+📊 **Current API Status:** ${API.getSheetyUrl()}
+        `;
+        
+        alert(helpMessage);
+    }
+
+    function getStatusIcon(type) {
+        const icons = {
+            'success': 'check-circle',
+            'warning': 'exclamation-triangle',
+            'info': 'info-circle',
+            'error': 'exclamation-circle'
+        };
+        return icons[type] || 'info-circle';
+    }
+
+    function getStatusColor(type) {
+        const colors = {
+            'success': '#10b981',
+            'warning': '#f59e0b',
+            'info': '#3b82f6',
+            'error': '#ef4444'
+        };
+        return colors[type] || '#3b82f6';
+    }
+
+    function getStatusBorderColor(type) {
+        const colors = {
+            'success': '#047857',
+            'warning': '#d97706',
+            'info': '#1d4ed8',
+            'error': '#dc2626'
+        };
+        return colors[type] || '#1d4ed8';
+    }
+
+    function refreshJobs() {
+        API.clearCache();
+        currentPage = 1;
+        showNotification('🔄 Refreshing job data from Sheety...', 'info');
+        loadJobs();
     }
 
     function displayJobs(jobs) {
@@ -324,29 +389,29 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Location filters
-            if (selectedLocation && job.location.toLowerCase() !== selectedLocation) {
+            if (selectedLocation && job.location.toLowerCase() !== selectedLocation.toLowerCase()) {
                 return false;
             }
 
             if (selectedLocations.length > 0 && !selectedLocations.some(loc => 
-                job.location.toLowerCase().includes(loc))) {
+                job.location.toLowerCase().includes(loc.toLowerCase()))) {
                 return false;
             }
 
             // Job type filters
-            if (selectedJobType && job.type.toLowerCase() !== selectedJobType) {
+            if (selectedJobType && job.type.toLowerCase() !== selectedJobType.toLowerCase()) {
                 return false;
             }
 
             if (selectedTypes.length > 0 && !selectedTypes.some(type => 
-                job.type.toLowerCase().includes(type))) {
+                job.type.toLowerCase().includes(type.toLowerCase()))) {
                 return false;
             }
 
             // Experience filters
             if (selectedExperience) {
                 const jobExperience = getExperienceLevel(job.requirements);
-                if (jobExperience !== selectedExperience) {
+                if (jobExperience.toLowerCase() !== selectedExperience.toLowerCase()) {
                     return false;
                 }
             }
@@ -430,7 +495,7 @@ document.addEventListener('DOMContentLoaded', function() {
         locationFilters.forEach(checkbox => {
             const location = checkbox.value;
             const count = currentJobs.filter(job => 
-                job.location.toLowerCase().includes(location)
+                job.location.toLowerCase().includes(location.toLowerCase())
             ).length;
             const countElement = checkbox.parentElement.querySelector('.option-count');
             if (countElement) {
@@ -441,7 +506,7 @@ document.addEventListener('DOMContentLoaded', function() {
         typeFilters.forEach(checkbox => {
             const type = checkbox.value;
             const count = currentJobs.filter(job => 
-                job.type.toLowerCase().includes(type)
+                job.type.toLowerCase().includes(type.toLowerCase())
             ).length;
             const countElement = checkbox.parentElement.querySelector('.option-count');
             if (countElement) {
